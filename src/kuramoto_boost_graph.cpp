@@ -5,24 +5,60 @@
 #include <vector>
 #include <complex>
 #include <cmath>
+#include <chrono>
 #include <random>
 #include "omp.h"
+#include <utility>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/erdos_renyi_generator.hpp>
+#include <boost/random/linear_congruential.hpp>
 
+typedef boost::minstd_rand base_generator_type;
 typedef std::vector<double> dim1;
 typedef std::vector<std::vector<double>> dim2;
+typedef std::vector<int> dim1I;
+typedef std::vector<dim1I> dim2I;
+typedef boost::adjacency_list<boost::vecS,
+                              boost::vecS,
+                              boost::undirectedS>
+    Graph;
+
+typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
+typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+
+using std::cout;
+using std::endl;
+
 //-------------------------------------------------------------------
+void graph_from_matrix(dim2I &adj, Graph &graph_t)
+{
+    const size_t N = adj.size();
+    for (size_t i = 0; i < N; i++)
+    {
+        for (size_t j = i + 1; j < N; j++)
+        {
+            if (adj[i][j] != 0)
+                boost::add_edge(i, j, graph_t);
+        }
+    }
+}
 
 class ODE
 {
 private:
     int N;
+    dim2I adj;
     double dt;
     dim1 omega;
+    Graph graph_t;
     int n_steps;
     double t_sim;
     double t_cut;
     double coupling;
     dim1 initial_phases;
+    IndexMap vertex_id;
+    std::pair<vertex_iter, vertex_iter> vp;
 
 public:
     virtual ~ODE() {}
@@ -33,7 +69,9 @@ public:
                     double t_cut,
                     double coupling,
                     dim1 initial_phase,
-                    dim1 omega)
+                    dim1 omega,
+                    Graph graph_t,
+                    dim2I adj)
     {
         this->N = N;
         this->dt = dt;
@@ -42,7 +80,12 @@ public:
         this->coupling = coupling;
         this->initial_phases = initial_phase;
         this->omega = omega;
+        this->graph_t = graph_t;
+        this->adj = adj;
         n_steps = (int)(t_sim / dt);
+
+        // cout << boost::num_vertices(graph_t) << endl;
+        vertex_id = get(boost::vertex_index, graph_t);
     }
     //---------------------------------------------------------------
     dim1 integrate()
@@ -66,7 +109,7 @@ public:
         {
             double sumx = 0;
             for (int j = 0; j < N; j++)
-                if (i != j)
+                if ((i != j) && adj[i][j] != 0)
                     sumx += sin(x[j] - x[i]);
 
             dydt[i] = omega[i] + coupling * sumx;
@@ -75,10 +118,32 @@ public:
         return dydt;
     }
     //---------------------------------------------------------------
+    dim1 kuramoto_model_bgl(const dim1 &x)
+    {
+        dim1 dydt(N);
+
+        typename boost::graph_traits<Graph>::adjacency_iterator ai, ai_end;
+        for (vp = vertices(graph_t); vp.first != vp.second; ++vp.first)
+        {
+            Vertex v = *vp.first;
+            int i = vertex_id[v];
+            double sumj = 0.0;
+            for (boost::tie(ai, ai_end) = adjacent_vertices(v, graph_t); ai != ai_end; ++ai)
+            {
+                int j = get(vertex_id, *ai);
+                sumj += sin(x[j] - x[i]);
+            }
+            dydt[i] = omega[i] + coupling * sumj;
+        }
+
+        return dydt;
+    }
+    //---------------------------------------------------------------
     void euler_integrator(dim1 &y)
     {
         dim1 f(N);
-        f = kuramoto_model(y);
+        // f = kuramoto_model(y);
+        f = kuramoto_model_bgl(y);
         for (int i = 0; i < y.size(); i++)
             y[i] += f[i] * dt;
     }
@@ -107,8 +172,22 @@ int main()
     size_t N = 10;
     dim1 initial_phases = {0.1, 0.3, -0.5, 1.4, -1.5, 0.1, 0.6, 0.0, 0.2, -0.5};
     dim1 omega(N, 1.0);
+    dim2I adj = {
+        {0, 1, 0, 1, 0, 1, 0, 1, 1, 1},
+        {1, 0, 0, 1, 1, 1, 0, 1, 0, 1},
+        {0, 0, 0, 1, 1, 1, 1, 0, 1, 1},
+        {1, 1, 1, 0, 1, 1, 1, 0, 0, 1},
+        {0, 1, 1, 1, 0, 0, 1, 0, 1, 1},
+        {1, 1, 1, 1, 0, 0, 0, 1, 0, 1},
+        {0, 0, 1, 1, 1, 0, 0, 0, 0, 1},
+        {1, 1, 0, 0, 0, 1, 0, 0, 1, 1},
+        {1, 0, 1, 0, 1, 0, 0, 1, 0, 1},
+        {1, 1, 1, 1, 1, 1, 1, 1, 1, 0}};
+
     ODE ode;
-    ode.set_params(N, 0.01, 100.0, 0.0, 0.01, initial_phases, omega);
+    Graph graph_t(N);
+    graph_from_matrix(adj, graph_t);
+    ode.set_params(N, 0.001, 1000.0, 0.0, 0.01, initial_phases, omega, graph_t, adj);
     dim1 r = ode.integrate();
 
     for (auto i : r)
@@ -116,3 +195,13 @@ int main()
 
     return 0;
 }
+
+// typename boost::graph_traits<Graph>::adjacency_iterator ai, ai_end;
+//         for (vp = vertices(graph_t); vp.first != vp.second; ++vp.first)
+//         {
+//             Vertex v = *vp.first;
+//             std::cout << vertex_id[v] << " : ";
+//             for (boost::tie(ai, ai_end) = adjacent_vertices(v, graph_t); ai != ai_end; ++ai)
+//                 std::cout << get(vertex_id, *ai) << " ";
+//             std::cout << std::endl;
+//         }

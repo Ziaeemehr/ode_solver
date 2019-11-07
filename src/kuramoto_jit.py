@@ -1,16 +1,21 @@
 import numpy as np
 import pylab as pl
 import networkx as nx
+from numba import jit
 from scipy.integrate import odeint
 
 np.random.seed(1)
 
+@jit
 def kuramoto(x, t):
 
+    # dxdt = np.asarray([omega[i] for i in range(N)])
     dxdt = np.zeros(N)
+    sumj = 0.0
 
     for i in range(N):
-        sumj = np.sum(adj[i, :] * np.sin(x-x[i]))
+        for j in range(N):
+            sumj += adj[i][j] * np.sin(x[j] - x[i])
         dxdt[i] = omega[i] + coupling * sumj
     return dxdt
 
@@ -19,7 +24,7 @@ N = 10
 coupling = 0.01
 omega = [1.0] * N
 t = np.arange(0, 100, 0.05)
-x0 = np.random.uniform(-np.pi, np.pi, N)
+x0 = np.random.uniform(-np.pi, np.pi, N).tolist()
 adj = nx.to_numpy_array(nx.complete_graph(N))
 
 theta = odeint(kuramoto, x0, t)

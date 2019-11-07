@@ -1,14 +1,16 @@
+#include "omp.h"
+#include <cmath>
+#include <time.h>
+#include <chrono>
+#include <vector>
+#include <random>
+#include <complex>
+#include <numeric>
+#include <utility>
+#include <assert.h>
 #include <iostream>
 #include <algorithm>
-#include <assert.h>
-#include <numeric>
-#include <vector>
-#include <complex>
-#include <cmath>
-#include <chrono>
-#include <random>
-#include "omp.h"
-#include <utility>
+#include <sys/time.h>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/erdos_renyi_generator.hpp>
 #include <boost/random/linear_congruential.hpp>
@@ -26,6 +28,7 @@ typedef boost::adjacency_list<boost::vecS,
 typedef boost::property_map<Graph, boost::vertex_index_t>::type IndexMap;
 typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+typename boost::graph_traits<Graph>::adjacency_iterator ai, ai_end;
 
 using std::cout;
 using std::endl;
@@ -42,6 +45,18 @@ void graph_from_matrix(dim2I &adj, Graph &graph_t)
                 boost::add_edge(i, j, graph_t);
         }
     }
+}
+
+double get_wall_time()
+{
+    /*measure real passed time */
+    struct timeval time;
+    if (gettimeofday(&time, NULL))
+    {
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
 class ODE
@@ -123,6 +138,7 @@ public:
         dim1 dydt(N);
 
         typename boost::graph_traits<Graph>::adjacency_iterator ai, ai_end;
+    
         for (vp = vertices(graph_t); vp.first != vp.second; ++vp.first)
         {
             Vertex v = *vp.first;
@@ -142,8 +158,8 @@ public:
     void euler_integrator(dim1 &y)
     {
         dim1 f(N);
-        // f = kuramoto_model(y);
         f = kuramoto_model_bgl(y);
+        // f = kuramoto_model(y);
         for (int i = 0; i < y.size(); i++)
             y[i] += f[i] * dt;
     }
@@ -187,11 +203,17 @@ int main()
     ODE ode;
     Graph graph_t(N);
     graph_from_matrix(adj, graph_t);
-    ode.set_params(N, 0.001, 1000.0, 0.0, 0.01, initial_phases, omega, graph_t, adj);
+    ode.set_params(N, 0.001, 500.0, 0.0, 0.0005, initial_phases, omega, graph_t, adj);
+
+    double start = get_wall_time();
+
     dim1 r = ode.integrate();
 
-    for (auto i : r)
-        std::cout << i << std::endl;
+    cout << "# Done in : " << get_wall_time() - start << endl;
+
+    // for (auto i : r)
+    //     std::cout << i << std::endl;
+    std::cout << r[r.size() - 1] << std::endl;
 
     return 0;
 }

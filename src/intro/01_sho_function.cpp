@@ -1,6 +1,5 @@
 #include <iostream>
 #include <assert.h>
-#include <random>
 #include <vector>
 
 typedef std::vector<double> dim1;
@@ -27,14 +26,11 @@ void eulerIntegrator(dim1 &y, const double dt)
     for (int i = 0; i < n; ++i)
         y[i] += dxdt[i] * dt;
 }
-
+//-------------------------------------------------------//
 void rungeKutta4Integrator(dim1 &y, const double dt)
 {
     int n = y.size();
-    dim1 k1(n);
-    dim1 k2(n);
-    dim1 k3(n);
-    dim1 k4(n);
+    dim1 k1(n), k2(n), k3(n), k4(n);
     dim1 f(n);
 
     k1 = harmonicOscillator(y);
@@ -63,20 +59,18 @@ int main(int argc, char **argv)
     const double tSimulation = 100.0;
     const size_t steps = int(tSimulation / dt);
 
-    FILE *outFile = fopen("resutl.txt", "w");
-
     dim1 x{0.0, 1.0};
-
     for (size_t i = 0; i < steps; ++i)
     {
         // eulerIntegrator(x, dt);
         rungeKutta4Integrator(x, dt);
 
-        fprintf(outFile, "%15.6f", (i * dt));
+        printf("%15.6f", (i * dt));
         for (int j = 0; j < N; ++j)
-            fprintf(outFile, "%15.9f", x[j]);
-        fprintf(outFile, "\n");
+            printf("%15.9f", x[j]);
+        printf("\n");
     }
-
-    fclose(outFile);
+    
+    return 0;
 }
+//-------------------------------------------------------//

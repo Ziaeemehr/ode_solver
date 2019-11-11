@@ -1,6 +1,3 @@
-// integrate:
-// use runge_kutta54_cash_karp stepper (5th order) and uses adaptive step-size.
-
 #include <iostream>
 #include <vector>
 #include <boost/numeric/odeint.hpp>
@@ -58,15 +55,15 @@ int main(int /* argc */, char ** /* argv */)
     const double tSimulation = 100.0;
 
     // state_initialization
-    dim1 x{1.0, 0.0};
+    dim1 x{0.0, 1.0};
 
     // containers for time and state of the system
     dim2 x_vec;
     dim1 times;
 
     //[ define_const_stepper
-    // euler<dim1> stepper;
-    runge_kutta4<dim1> stepper;
+    euler<dim1> stepper;
+    // runge_kutta4<dim1> stepper;
 
     // integration
     size_t steps = integrate_const(stepper,

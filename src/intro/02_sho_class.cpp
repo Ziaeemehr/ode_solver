@@ -36,7 +36,6 @@ public:
     void integrate(Integrator integrator, ode_sys ode_system)
     {
 
-        FILE *outFile = fopen("resutlClass.txt", "w");
         const size_t numberOfSteps = int(tSimulation / dt);
 
         for (int step = 0; step < numberOfSteps; ++step)
@@ -44,13 +43,11 @@ public:
             (this->*integrator)(state, ode_system);
 
             // print state to file
-            fprintf(outFile, "%15.6f", (step * dt));
+            printf("%15.6f", (step * dt));
             for (int j = 0; j < N; ++j)
-                fprintf(outFile, "%15.9f", state[j]);
-            fprintf(outFile, "\n");
+                printf("%15.9f", state[j]);
+            printf("\n");
         }
-
-        fclose(outFile);
     }
     //---------------------------------------------------//
     dim1 dampedOscillator(const dim1 &x)

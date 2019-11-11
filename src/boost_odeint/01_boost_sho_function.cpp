@@ -42,15 +42,15 @@ int main(int /* argc */, char ** /* argv */)
     const double tSimulation = 100.0;
 
     // state_initialization
-    dim1 x {1.0, 0.0};
+    dim1 x {0.0, 1.0};
 
     // containers for time and state of the system
     dim2 x_vec;
     dim1 times;
 
     //[ define_const_stepper
-    // euler<dim1> stepper;
-    runge_kutta4<dim1> stepper;
+    euler<dim1> stepper;
+    // runge_kutta4<dim1> stepper;
 
     // integration
     size_t steps = integrate_const(stepper,                               //stepper
@@ -68,7 +68,6 @@ int main(int /* argc */, char ** /* argv */)
                x_vec[i][0],
                x_vec[i][1]);
 
-    cout << times[times.size() - 1] << endl;
     return 0;
 }
 /*-----------------------------------------------------------------*/

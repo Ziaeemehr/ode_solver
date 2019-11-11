@@ -43,7 +43,7 @@ public:
             (this->*integrator)(state, ode_system);
 
             // print state to file
-            printf("%15.6f", (step * dt));
+            printf("%15.6f", ((step+1) * dt));
             for (int j = 0; j < N; ++j)
                 printf("%15.9f", state[j]);
             printf("\n");

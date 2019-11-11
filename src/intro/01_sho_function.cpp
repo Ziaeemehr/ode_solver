@@ -1,10 +1,10 @@
 #include <iostream>
 #include <assert.h>
+#include <valarray>
 #include <vector>
 
-typedef std::vector<double> dim1;
+typedef std::valarray<double> dim1;
 //-------------------------------------------------------//
-
 dim1 harmonicOscillator(const dim1 &x)
 {
     dim1 dxdt(2);
@@ -14,44 +14,29 @@ dim1 harmonicOscillator(const dim1 &x)
 
     return dxdt;
 }
-
 //-------------------------------------------------------//
-
 void eulerIntegrator(dim1 &y, const double dt)
 {
     size_t n = y.size();
     dim1 dxdt(n);
 
     dxdt = harmonicOscillator(y);
-    for (int i = 0; i < n; ++i)
-        y[i] += dxdt[i] * dt;
+    y =  y + dxdt * dt;
 }
 //-------------------------------------------------------//
 void rungeKutta4Integrator(dim1 &y, const double dt)
 {
     int n = y.size();
-    dim1 k1(n), k2(n), k3(n), k4(n);
-    dim1 f(n);
-
-    k1 = harmonicOscillator(y);
-    for (int i = 0; i < n; i++)
-        f[i] = y[i] + 0.5 * dt * k1[i];
-
-    k2 = harmonicOscillator(f);
-    for (int i = 0; i < n; i++)
-        f[i] = y[i] + 0.5 * dt * k2[i];
     
-    k3 = harmonicOscillator(f);
-    for (int i = 0; i < n; i++)
-        f[i] = y[i] + dt * k3[i];
-    
-    k4 = harmonicOscillator(f);
-    
-    for (int i = 0; i < n; i++)
-        y[i] += (k1[i] + 2.0 * (k2[i] + k3[i]) + k4[i]) * dt / 6.0;
+    dim1 k1 = dt * harmonicOscillator(y); 
+    dim1 k2 = dt * harmonicOscillator(y + 0.5*k1); 
+    dim1 k3 = dt * harmonicOscillator(y + 0.5*k2); 
+    dim1 k4 = dt * harmonicOscillator(y + k3); 
+  
+    // Update next value of y 
+    y = y + (k1 + 2.0 * k2 + 2.0 * k3 + k4)/6.0;
 }
 //-------------------------------------------------------//
-
 int main(int argc, char **argv)
 {
     const int N = 2;
@@ -65,7 +50,7 @@ int main(int argc, char **argv)
         // eulerIntegrator(x, dt);
         rungeKutta4Integrator(x, dt);
 
-        printf("%15.6f", (i * dt));
+        printf("%15.6f", ((i+1) * dt));
         for (int j = 0; j < N; ++j)
             printf("%15.9f", x[j]);
         printf("\n");

@@ -30,4 +30,5 @@ for i in range(len(t)):
     r[i] = abs(sum(np.exp(1j * theta[i]))) / N
 
 pl.plot(t, r, lw=2)
+pl.savefig("py.png")
 pl.show()

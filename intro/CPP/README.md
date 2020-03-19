@@ -2,6 +2,7 @@
 #### Camparing the results:
 
 - directory `intro`:
+
 |method     |      time        |  x0           | x1        |
 | :---      |  :---:           |   :---:       | :---:     |
 |euler      |      99.990000   |-0.069638927   |0.117734245|
